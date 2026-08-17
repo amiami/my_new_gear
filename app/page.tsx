@@ -315,7 +315,7 @@ export default function MyNewGearApp() {
                     </div>
 
                     <button
-                      onClick={() => shareToX(gear)}
+                      onClick={() => shareToX()}
                       className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded text-xs flex items-center gap-1 transition-colors border border-neutral-700"
                       title="Xでポスト"
                     >
