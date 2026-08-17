@@ -106,7 +106,7 @@ export default function MyNewGearApp() {
             <span>📦</span> 僕のマイニューギア
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            買ったギアを手元ですぐ記録。ワンクリックでXにシェアできます。
+            買ったガジェットを手元ですぐ記録。ワンクリックでXにシェアできます。
           </p>
         </header>
 
@@ -114,7 +114,7 @@ export default function MyNewGearApp() {
         <section className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-sm">
           <div className="flex items-center mb-4">
             <h2 className="text-sm font-semibold text-neutral-300 me-1">
-              新しいギアを記録
+              新しいガジェットを記録
             </h2>
             <p className="text-xs text-neutral-400">※画像登録は開発中です</p>
           </div>
@@ -176,16 +176,16 @@ export default function MyNewGearApp() {
               type="submit"
               className="w-full py-2.5 bg-white text-black font-semibold rounded-lg text-sm hover:bg-neutral-200 transition-colors shadow"
             >
-              ギアを登録する
+              ガジェットを登録する
             </button>
           </form>
         </section>
 
-        {/* ギア一覧 */}
+        {/* ガジェット一覧 */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-neutral-300">
-              記録したギア ({filteredGears.length})
+              記録したガジェット ({filteredGears.length})
             </h2>
 
             {/* フィルタータブ */}
@@ -208,7 +208,7 @@ export default function MyNewGearApp() {
 
           {filteredGears.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-neutral-800 rounded-xl text-neutral-500 text-sm">
-              記録されたギアがありません。
+              記録されたガジェットがありません。
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
