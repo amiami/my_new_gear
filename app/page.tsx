@@ -122,19 +122,34 @@ export default function MyNewGearApp() {
     saveGears(gears.filter((g) => g.id !== id));
   };
 
-  const shareToX = (gear: Gear) => {
-    const textLines = [
-      `My new gear... 📦✨`,
-      `【${gear.name}】`,
-      gear.boughtLocation ? `購入場所: ${gear.boughtLocation}` : "",
-      gear.comment ? `一言: ${gear.comment}` : "",
-      `#MNG #MyNewGear`,
-    ].filter(Boolean);
+  // Xシェア（スマホ: X公式アプリへ直行 / PC: 画面中央ポップアップ）
+  const shareToX = () => {
+    const text = "My new gear...";
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      textLines.join("\n")
-    )}`;
-    window.open(shareUrl, "_blank", "noopener,noreferrer");
+    if (isMobile) {
+      // X公式アプリのポスト画面を直接開く
+      const appUrl = `twitter://post?message=${encodeURIComponent(text)}`;
+      const webUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+
+      // アプリの起動を試み、万が一インストールされていない場合はWeb版を開く
+      window.location.href = appUrl;
+      setTimeout(() => {
+        window.location.href = webUrl;
+      }, 600);
+    } else {
+      // PC: 画面中央にポップアップ
+      const width = 550;
+      const height = 420;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      window.open(
+        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+        "shareToXWindow",
+        `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+    }
   };
 
   const filteredGears = gears.filter((gear) => {
