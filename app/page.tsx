@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Gear = {
   id: string;
@@ -8,6 +9,7 @@ type Gear = {
   boughtAtDate: string;
   boughtLocation: string;
   comment: string;
+  imageUrl?: string;
   isDisposed: boolean;
   createdAt: number;
 };
@@ -20,9 +22,13 @@ export default function MyNewGearApp() {
   );
   const [boughtLocation, setBoughtLocation] = useState("");
   const [comment, setComment] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [filterDisposed, setFilterDisposed] = useState<"all" | "active" | "disposed">("all");
 
-  // LocalStorageから初期読み込み
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // LocalStorageから読み込み
   useEffect(() => {
     const saved = localStorage.getItem("my_new_gears");
     if (saved) {
@@ -34,34 +40,69 @@ export default function MyNewGearApp() {
     }
   }, []);
 
-  // 保存処理
   const saveGears = (newGears: Gear[]) => {
     setGears(newGears);
     localStorage.setItem("my_new_gears", JSON.stringify(newGears));
   };
 
-  // ギア登録
-  const handleSubmit = (e: React.FormEvent) => {
+  // ガジェット登録（画像アップロード含む）
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newGear: Gear = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      name: name.trim(),
-      boughtAtDate,
-      boughtLocation: boughtLocation.trim(),
-      comment: comment.trim(),
-      isDisposed: false,
-      createdAt: Date.now(),
-    };
+    setIsUploading(true);
+    let uploadedImageUrl = "";
 
-    saveGears([newGear, ...gears]);
-    setName("");
-    setBoughtLocation("");
-    setComment("");
+    try {
+      // 画像が選択されている場合はSupabase Storageにアップロード
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split(".").pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = `uploads/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("gear-images")
+          .upload(filePath, selectedFile);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // 公開URLを取得
+        const { data: publicUrlData } = supabase.storage
+          .from("gear-images")
+          .getPublicUrl(filePath);
+
+        uploadedImageUrl = publicUrlData.publicUrl;
+      }
+
+      const newGear: Gear = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        name: name.trim(),
+        boughtAtDate,
+        boughtLocation: boughtLocation.trim(),
+        comment: comment.trim(),
+        imageUrl: uploadedImageUrl || undefined,
+        isDisposed: false,
+        createdAt: Date.now(),
+      };
+
+      saveGears([newGear, ...gears]);
+
+      // フォーム初期化
+      setName("");
+      setBoughtLocation("");
+      setComment("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      alert("画像のアップロードまたは登録に失敗しました: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  // 処分・売却トグル
   const toggleDisposed = (id: string) => {
     const updated = gears.map((g) =>
       g.id === id ? { ...g, isDisposed: !g.isDisposed } : g
@@ -69,13 +110,11 @@ export default function MyNewGearApp() {
     saveGears(updated);
   };
 
-  // 削除
   const deleteGear = (id: string) => {
-    if (!window.confirm("このギアの記録を削除しますか？")) return;
+    if (!window.confirm("このガジェットの記録を削除しますか？")) return;
     saveGears(gears.filter((g) => g.id !== id));
   };
 
-  // X（旧Twitter）へシェア
   const shareToX = (gear: Gear) => {
     const textLines = [
       `My new gear... 📦✨`,
@@ -100,7 +139,6 @@ export default function MyNewGearApp() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 md:p-8 font-sans">
       <div className="max-w-2xl mx-auto space-y-8">
-        {/* ヘッダー */}
         <header className="border-b border-neutral-800 pb-4">
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <span>📦</span> 僕のマイニューギア
@@ -112,12 +150,9 @@ export default function MyNewGearApp() {
 
         {/* 登録フォーム */}
         <section className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center mb-4">
-            <h2 className="text-sm font-semibold text-neutral-300 me-1">
-              新しいガジェットを記録
-            </h2>
-            <p className="text-xs text-neutral-400">※画像登録は開発中です</p>
-          </div>
+          <h2 className="text-sm font-semibold text-neutral-300 mb-4">
+            新しいガジェットを記録
+          </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">
@@ -159,13 +194,31 @@ export default function MyNewGearApp() {
               </div>
             </div>
 
+            {/* 写真添付 */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-400 mb-1">
+                写真（任意）
+              </label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+                className="w-full text-xs text-neutral-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-neutral-200 hover:file:bg-neutral-700 cursor-pointer"
+              />
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">
                 コメント / 感想
               </label>
               <textarea
                 rows={2}
-                placeholder="例: 音質も装着感も最高。今年買ってよかった機材筆頭。"
+                placeholder="例: 装着感抜群。ノイキャン性能に驚いた。"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
@@ -174,9 +227,10 @@ export default function MyNewGearApp() {
 
             <button
               type="submit"
-              className="w-full py-2.5 bg-white text-black font-semibold rounded-lg text-sm hover:bg-neutral-200 transition-colors shadow"
+              disabled={isUploading}
+              className="w-full py-2.5 bg-white text-black font-semibold rounded-lg text-sm hover:bg-neutral-200 transition-colors shadow disabled:opacity-50"
             >
-              ガジェットを登録する
+              {isUploading ? "保存・画像アップロード中..." : "ガジェットを登録する"}
             </button>
           </form>
         </section>
@@ -188,7 +242,6 @@ export default function MyNewGearApp() {
               記録したガジェット ({filteredGears.length})
             </h2>
 
-            {/* フィルタータブ */}
             <div className="flex gap-1 bg-neutral-900 p-1 rounded-lg border border-neutral-800 text-xs">
               {(["all", "active", "disposed"] as const).map((mode) => (
                 <button
@@ -215,7 +268,7 @@ export default function MyNewGearApp() {
               {filteredGears.map((gear) => (
                 <div
                   key={gear.id}
-                  className={`p-4 rounded-xl border transition-all ${
+                  className={`p-4 rounded-xl border transition-all flex flex-col gap-3 ${
                     gear.isDisposed
                       ? "bg-neutral-950/60 border-neutral-900 opacity-60"
                       : "bg-neutral-900 border-neutral-800"
@@ -248,13 +301,25 @@ export default function MyNewGearApp() {
                     </button>
                   </div>
 
+                  {/* 登録された画像プレビュー */}
+                  {gear.imageUrl && (
+                    <div className="relative w-full h-48 sm:h-56 bg-neutral-950 rounded-lg overflow-hidden border border-neutral-800">
+                      <img
+                        src={gear.imageUrl}
+                        alt={gear.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+
                   {gear.comment && (
-                    <p className="text-xs text-neutral-300 mt-2.5 bg-neutral-950/50 p-2.5 rounded-lg border border-neutral-800/80 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-xs text-neutral-300 bg-neutral-950/50 p-2.5 rounded-lg border border-neutral-800/80 leading-relaxed whitespace-pre-wrap">
                       {gear.comment}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-neutral-800/60 text-xs text-neutral-400">
+                  <div className="flex items-center justify-between pt-1 border-t border-neutral-800/60 text-xs text-neutral-400">
                     <label className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-200">
                       <input
                         type="checkbox"
