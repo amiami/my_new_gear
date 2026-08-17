@@ -125,27 +125,22 @@ export default function MyNewGearApp() {
   // Xシェア（スマホ: X公式アプリへ直行 / PC: 画面中央ポップアップ）
   const shareToX = () => {
     const text = "My new gear...";
+    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
-      // X公式アプリのポスト画面を直接開く
-      const appUrl = `twitter://post?message=${encodeURIComponent(text)}`;
-      const webUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-
-      // アプリの起動を試み、万が一インストールされていない場合はWeb版を開く
-      window.location.href = appUrl;
-      setTimeout(() => {
-        window.location.href = webUrl;
-      }, 600);
+      // スマホ: Web IntentのURLをそのまま開く
+      // （iOS/AndroidはTwitter/Xアプリがインストールされていれば自動でアプリが開き、テキストも確実に反映されます）
+      window.location.href = shareUrl;
     } else {
-      // PC: 画面中央にポップアップ
+      // PC: 画面中央に小さなポップアップを表示
       const width = 550;
       const height = 420;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
 
       window.open(
-        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+        shareUrl,
         "shareToXWindow",
         `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
       );
