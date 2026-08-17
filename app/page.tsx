@@ -106,15 +106,18 @@ export default function MyNewGearApp() {
             <span>📦</span> My New Gear Log
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            買ったギアを手元ですぐ記録。ワンクリックでXにシェア。
+            買ったギアを手元ですぐ記録。ワンクリックでXにシェアできます。
           </p>
         </header>
 
         {/* 登録フォーム */}
         <section className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-neutral-300 mb-4">
-            新しいギアを記録
-          </h2>
+          <div className="flex items-center mb-4">
+            <h2 className="text-sm font-semibold text-neutral-300 me-1">
+              新しいギアを記録
+            </h2>
+            <p className="text-xs text-neutral-400">※画像登録は開発中です</p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">
