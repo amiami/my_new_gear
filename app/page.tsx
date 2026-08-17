@@ -56,10 +56,17 @@ export default function MyNewGearApp() {
     try {
       // 画像が選択されている場合はSupabase Storageにアップロード
       if (selectedFile) {
-        const fileExt = selectedFile.name.split(".").pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const filePath = `uploads/${fileName}`;
+        // 拡張子を安全に取得（取得できない場合は png にフォールバック）
+        const fileExt = selectedFile.name.includes(".")
+          ? selectedFile.name.split(".").pop()?.toLowerCase()
+          : "png";
 
+        // 半角英数字とアンダースコアのみでクリーンなファイル名を生成
+        const cleanFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = cleanFileName; // ← 階層を作らずルートに保存（確実）
+
+        console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+        console.log("Uploading Path:", filePath);
         const { error: uploadError } = await supabase.storage
           .from("gear-images")
           .upload(filePath, selectedFile);
