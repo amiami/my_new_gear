@@ -103,7 +103,7 @@ export default function MyNewGearApp() {
         {/* ヘッダー */}
         <header className="border-b border-neutral-800 pb-4">
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span>📦</span> My New Gear Log
+            <span>📦</span> 僕のマイニューギア
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
             買ったギアを手元ですぐ記録。ワンクリックでXにシェアできます。
