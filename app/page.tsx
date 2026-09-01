@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
 import GearForm from "@/components/GearForm";
@@ -9,7 +9,7 @@ import { loadGears, saveGears } from "@/lib/gearStorage";
 import type { Gear } from "@/types/gear";
 
 export default function MyNewGearApp() {
-  const [gears, setGears] = useState<Gear[]>([]);
+  const [gears, setGears] = useState<Gear[]>(() => loadGears());
   const [name, setName] = useState("");
   const [boughtAtDate, setBoughtAtDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -23,9 +23,6 @@ export default function MyNewGearApp() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // LocalStorageから読み込み
-  useEffect(() => {
-    setGears(loadGears());
-  }, []);
 
   const updateGears = (newGears: Gear[]) => {
     setGears(newGears);
@@ -89,9 +86,13 @@ export default function MyNewGearApp() {
       setComment("");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Upload error:", err);
-      alert("画像のアップロードまたは登録に失敗しました: " + err.message);
+
+      const message =
+        err instanceof Error ? err.message : "不明なエラーが発生しました";
+
+      alert("画像のアップロードまたは登録に失敗しました: " + message);
     } finally {
       setIsUploading(false);
     }
