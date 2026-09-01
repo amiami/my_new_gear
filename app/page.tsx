@@ -3,16 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
-type Gear = {
-  id: string;
-  name: string;
-  boughtAtDate: string;
-  boughtLocation: string;
-  comment: string;
-  imageUrl?: string;
-  isDisposed: boolean;
-  createdAt: number;
-};
+import GearForm from "@/components/GearForm";
+import GearCard from "@/components/GearCard";
+import { loadGears, saveGears } from "@/lib/gearStorage";
+import type { Gear } from "@/types/gear";
 
 export default function MyNewGearApp() {
   const [gears, setGears] = useState<Gear[]>([]);
@@ -30,19 +24,14 @@ export default function MyNewGearApp() {
 
   // LocalStorageから読み込み
   useEffect(() => {
-    const saved = localStorage.getItem("my_new_gears");
-    if (saved) {
-      try {
-        setGears(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load gears", e);
-      }
-    }
+    // localStorageはブラウザでのみ利用できるため、初回表示後に読み込む
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGears(loadGears());
   }, []);
 
-  const saveGears = (newGears: Gear[]) => {
+  const updateGears = (newGears: Gear[]) => {
     setGears(newGears);
-    localStorage.setItem("my_new_gears", JSON.stringify(newGears));
+    saveGears(newGears);
   };
 
   // ガジェット登録（画像アップロード含む）
@@ -94,7 +83,7 @@ export default function MyNewGearApp() {
         createdAt: Date.now(),
       };
 
-      saveGears([newGear, ...gears]);
+      updateGears([newGear, ...gears]);
 
       // フォーム初期化
       setName("");
@@ -102,9 +91,13 @@ export default function MyNewGearApp() {
       setComment("");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Upload error:", err);
-      alert("画像のアップロードまたは登録に失敗しました: " + err.message);
+
+      const message =
+        err instanceof Error ? err.message : "不明なエラーが発生しました";
+
+      alert("画像のアップロードまたは登録に失敗しました: " + message);
     } finally {
       setIsUploading(false);
     }
@@ -114,12 +107,12 @@ export default function MyNewGearApp() {
     const updated = gears.map((g) =>
       g.id === id ? { ...g, isDisposed: !g.isDisposed } : g
     );
-    saveGears(updated);
+    updateGears(updated);
   };
 
   const deleteGear = (id: string) => {
     if (!window.confirm("このガジェットの記録を削除しますか？")) return;
-    saveGears(gears.filter((g) => g.id !== id));
+    updateGears(gears.filter((g) => g.id !== id));
   };
 
   // Xシェア処理（スマホ: OS共有シートで画像添付 / PC: 画像コピー & ポップアップ）
@@ -197,91 +190,20 @@ export default function MyNewGearApp() {
         </header>
 
         {/* 登録フォーム */}
-        <section className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-neutral-300 mb-4">
-            新しいガジェットを記録
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                品名 <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="例: SONY WH-1000XM5, HHKB Studio"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">
-                  買った日
-                </label>
-                <input
-                  type="date"
-                  value={boughtAtDate}
-                  onChange={(e) => setBoughtAtDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">
-                  買った場所 / ショップ
-                </label>
-                <input
-                  type="text"
-                  placeholder="例: Amazon, e☆イヤホン, 公式ストア"
-                  value={boughtLocation}
-                  onChange={(e) => setBoughtLocation(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-                />
-              </div>
-            </div>
-
-            {/* 写真添付 */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                写真（任意）
-              </label>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setSelectedFile(e.target.files[0]);
-                  }
-                }}
-                className="w-full text-xs text-neutral-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-neutral-200 hover:file:bg-neutral-700 cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                コメント / 感想
-              </label>
-              <textarea
-                rows={2}
-                placeholder="例: 装着感抜群。ノイキャン性能に驚いた。"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isUploading}
-              className="w-full py-2.5 bg-white text-black font-semibold rounded-lg text-sm hover:bg-neutral-200 transition-colors shadow disabled:opacity-50"
-            >
-              {isUploading ? "保存・画像アップロード中..." : "ガジェットを登録する"}
-            </button>
-          </form>
-        </section>
+        <GearForm
+          name={name}
+          setName={setName}
+          boughtAtDate={boughtAtDate}
+          setBoughtAtDate={setBoughtAtDate}
+          boughtLocation={boughtLocation}
+          setBoughtLocation={setBoughtLocation}
+          comment={comment}
+          setComment={setComment}
+          setSelectedFile={setSelectedFile}
+          fileInputRef={fileInputRef}
+          isUploading={isUploading}
+          onSubmit={handleSubmit}
+        />
 
         {/* ガジェット一覧 */}
         <section className="space-y-4">
@@ -314,78 +236,13 @@ export default function MyNewGearApp() {
           ) : (
             <div className="grid grid-cols-1 gap-3">
               {filteredGears.map((gear) => (
-                <div
+                <GearCard
                   key={gear.id}
-                  className={`p-4 rounded-xl border transition-all flex flex-col gap-3 ${
-                    gear.isDisposed
-                      ? "bg-neutral-950/60 border-neutral-900 opacity-60"
-                      : "bg-neutral-900 border-neutral-800"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-base text-white">
-                          {gear.name}
-                        </span>
-                        {gear.isDisposed && (
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">
-                            Disposed
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-400 mt-1">
-                        {gear.boughtAtDate && <span>📅 {gear.boughtAtDate}</span>}
-                        {gear.boughtLocation && <span>📍 {gear.boughtLocation}</span>}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => shareToX(gear)}
-                      className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded text-xs flex items-center gap-1 transition-colors border border-neutral-700"
-                      title="Xでポスト"
-                    >
-                      <span className="font-bold">𝕏</span> シェア
-                    </button>
-                  </div>
-
-                  {/* 登録された画像プレビュー */}
-                  {gear.imageUrl && (
-                    <div className="relative w-full h-48 sm:h-56 bg-neutral-950 rounded-lg overflow-hidden border border-neutral-800">
-                      <img
-                        src={gear.imageUrl}
-                        alt={gear.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-
-                  {gear.comment && (
-                    <p className="text-xs text-neutral-300 bg-neutral-950/50 p-2.5 rounded-lg border border-neutral-800/80 leading-relaxed whitespace-pre-wrap">
-                      {gear.comment}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between pt-1 border-t border-neutral-800/60 text-xs text-neutral-400">
-                    <label className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-200">
-                      <input
-                        type="checkbox"
-                        checked={gear.isDisposed}
-                        onChange={() => toggleDisposed(gear.id)}
-                        className="rounded border-neutral-700 bg-neutral-950 accent-white"
-                      />
-                      <span>手放した（処分・売却）</span>
-                    </label>
-
-                    <button
-                      onClick={() => deleteGear(gear.id)}
-                      className="text-neutral-500 hover:text-red-400 transition-colors"
-                    >
-                      削除
-                    </button>
-                  </div>
-                </div>
+                  gear={gear}
+                  onShare={shareToX}
+                  onToggleDisposed={toggleDisposed}
+                  onDelete={deleteGear}
+                />
               ))}
             </div>
           )}
