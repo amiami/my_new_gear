@@ -122,18 +122,49 @@ export default function MyNewGearApp() {
     saveGears(gears.filter((g) => g.id !== id));
   };
 
-  // Xシェア（スマホ: X公式アプリへ直行 / PC: 画面中央ポップアップ）
-  const shareToX = () => {
+  // Xシェア処理（スマホ: OS共有シートで画像添付 / PC: 画像コピー & ポップアップ）
+  const shareToX = async (gear: Gear) => {
     const text = "My new gear...";
-    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+    // 1. スマホの場合（Web Share APIで画像ファイルを直接渡す）
+    if (isMobile && gear.imageUrl && navigator.share && navigator.canShare) {
+      try {
+        const response = await fetch(gear.imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], "mynewgear.png", { type: blob.type || "image/png" });
+
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            text: text,
+            files: [file],
+          });
+          return;
+        }
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+      }
+    }
+
+    // 2. PCの場合（画像があればクリップボードにコピーしておく）
+    if (!isMobile && gear.imageUrl && navigator.clipboard && window.ClipboardItem) {
+      try {
+        const response = await fetch(gear.imageUrl);
+        const blob = await response.blob();
+        // PNG形式にしてクリップボードにセット
+        const item = new ClipboardItem({ [blob.type]: blob });
+        await navigator.clipboard.write([item]);
+      } catch (e) {
+        console.warn("クリップボードへの画像コピーをスキップしました:", e);
+      }
+    }
+
+    // 3. Xの投稿画面を開く
+    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+
     if (isMobile) {
-      // スマホ: Web IntentのURLをそのまま開く
-      // （iOS/AndroidはTwitter/Xアプリがインストールされていれば自動でアプリが開き、テキストも確実に反映されます）
       window.location.href = shareUrl;
     } else {
-      // PC: 画面中央に小さなポップアップを表示
       const width = 550;
       const height = 420;
       const left = window.screenX + (window.outerWidth - width) / 2;
@@ -310,7 +341,7 @@ export default function MyNewGearApp() {
                     </div>
 
                     <button
-                      onClick={() => shareToX()}
+                      onClick={() => shareToX(gear)}
                       className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded text-xs flex items-center gap-1 transition-colors border border-neutral-700"
                       title="Xでポスト"
                     >
