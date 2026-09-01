@@ -128,9 +128,9 @@ export default function MyNewGearApp() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     // 1. スマホの場合（Web Share APIで画像ファイルを直接渡す）
-    if (isMobile && gear.image_url && navigator.share && navigator.canShare) {
+    if (isMobile && gear.imageUrl && navigator.share && navigator.canShare) {
       try {
-        const response = await fetch(gear.image_url);
+        const response = await fetch(gear.imageUrl);
         const blob = await response.blob();
         const file = new File([blob], "mynewgear.png", { type: blob.type || "image/png" });
 
@@ -147,9 +147,9 @@ export default function MyNewGearApp() {
     }
 
     // 2. PCの場合（画像があればクリップボードにコピーしておく）
-    if (!isMobile && gear.image_url && navigator.clipboard && window.ClipboardItem) {
+    if (!isMobile && gear.imageUrl && navigator.clipboard && window.ClipboardItem) {
       try {
-        const response = await fetch(gear.image_url);
+        const response = await fetch(gear.imageUrl);
         const blob = await response.blob();
         // PNG形式にしてクリップボードにセット
         const item = new ClipboardItem({ [blob.type]: blob });
