@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
 import GearForm from "@/components/GearForm";
@@ -9,7 +9,7 @@ import { loadGears, saveGears } from "@/lib/gearStorage";
 import type { Gear } from "@/types/gear";
 
 export default function MyNewGearApp() {
-  const [gears, setGears] = useState<Gear[]>(() => loadGears());
+  const [gears, setGears] = useState<Gear[]>([]);
   const [name, setName] = useState("");
   const [boughtAtDate, setBoughtAtDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -23,6 +23,11 @@ export default function MyNewGearApp() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // LocalStorageから読み込み
+  useEffect(() => {
+    // localStorageはブラウザでのみ利用できるため、初回表示後に読み込む
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGears(loadGears());
+  }, []);
 
   const updateGears = (newGears: Gear[]) => {
     setGears(newGears);
