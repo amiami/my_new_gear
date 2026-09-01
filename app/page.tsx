@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
+import GearForm from "@/components/GearForm";
+
 type Gear = {
   id: string;
   name: string;
@@ -197,91 +199,20 @@ export default function MyNewGearApp() {
         </header>
 
         {/* 登録フォーム */}
-        <section className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-neutral-300 mb-4">
-            新しいガジェットを記録
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                品名 <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="例: SONY WH-1000XM5, HHKB Studio"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">
-                  買った日
-                </label>
-                <input
-                  type="date"
-                  value={boughtAtDate}
-                  onChange={(e) => setBoughtAtDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">
-                  買った場所 / ショップ
-                </label>
-                <input
-                  type="text"
-                  placeholder="例: Amazon, e☆イヤホン, 公式ストア"
-                  value={boughtLocation}
-                  onChange={(e) => setBoughtLocation(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-                />
-              </div>
-            </div>
-
-            {/* 写真添付 */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                写真（任意）
-              </label>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setSelectedFile(e.target.files[0]);
-                  }
-                }}
-                className="w-full text-xs text-neutral-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-neutral-200 hover:file:bg-neutral-700 cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                コメント / 感想
-              </label>
-              <textarea
-                rows={2}
-                placeholder="例: 装着感抜群。ノイキャン性能に驚いた。"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-neutral-400"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isUploading}
-              className="w-full py-2.5 bg-white text-black font-semibold rounded-lg text-sm hover:bg-neutral-200 transition-colors shadow disabled:opacity-50"
-            >
-              {isUploading ? "保存・画像アップロード中..." : "ガジェットを登録する"}
-            </button>
-          </form>
-        </section>
+        <GearForm
+          name={name}
+          setName={setName}
+          boughtAtDate={boughtAtDate}
+          setBoughtAtDate={setBoughtAtDate}
+          boughtLocation={boughtLocation}
+          setBoughtLocation={setBoughtLocation}
+          comment={comment}
+          setComment={setComment}
+          setSelectedFile={setSelectedFile}
+          fileInputRef={fileInputRef}
+          isUploading={isUploading}
+          onSubmit={handleSubmit}
+        />
 
         {/* ガジェット一覧 */}
         <section className="space-y-4">
