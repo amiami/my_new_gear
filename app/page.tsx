@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 import GearForm from "@/components/GearForm";
 import GearCard from "@/components/GearCard";
+import { loadGears, saveGears } from "@/lib/gearStorage";
 import type { Gear } from "@/types/gear";
 
 export default function MyNewGearApp() {
@@ -23,19 +24,12 @@ export default function MyNewGearApp() {
 
   // LocalStorageから読み込み
   useEffect(() => {
-    const saved = localStorage.getItem("my_new_gears");
-    if (saved) {
-      try {
-        setGears(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load gears", e);
-      }
-    }
+    setGears(loadGears());
   }, []);
 
-  const saveGears = (newGears: Gear[]) => {
+  const updateGears = (newGears: Gear[]) => {
     setGears(newGears);
-    localStorage.setItem("my_new_gears", JSON.stringify(newGears));
+    saveGears(newGears);
   };
 
   // ガジェット登録（画像アップロード含む）
@@ -87,7 +81,7 @@ export default function MyNewGearApp() {
         createdAt: Date.now(),
       };
 
-      saveGears([newGear, ...gears]);
+      updateGears([newGear, ...gears]);
 
       // フォーム初期化
       setName("");
@@ -107,12 +101,12 @@ export default function MyNewGearApp() {
     const updated = gears.map((g) =>
       g.id === id ? { ...g, isDisposed: !g.isDisposed } : g
     );
-    saveGears(updated);
+    updateGears(updated);
   };
 
   const deleteGear = (id: string) => {
     if (!window.confirm("このガジェットの記録を削除しますか？")) return;
-    saveGears(gears.filter((g) => g.id !== id));
+    updateGears(gears.filter((g) => g.id !== id));
   };
 
   // Xシェア処理（スマホ: OS共有シートで画像添付 / PC: 画像コピー & ポップアップ）
