@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import AuthStatus from "@/components/AuthStatus";
+import { createClient } from "@/lib/supabase/client";
 
 import GearForm from "@/components/GearForm";
 import GearCard from "@/components/GearCard";
@@ -9,6 +10,7 @@ import { loadGears, saveGears } from "@/lib/gearStorage";
 import type { Gear } from "@/types/gear";
 
 export default function MyNewGearApp() {
+  const supabase = createClient();
   const [gears, setGears] = useState<Gear[]>([]);
   const [name, setName] = useState("");
   const [boughtAtDate, setBoughtAtDate] = useState(
@@ -181,9 +183,12 @@ export default function MyNewGearApp() {
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 md:p-8 font-sans">
       <div className="max-w-2xl mx-auto space-y-8">
         <header className="border-b border-neutral-800 pb-4">
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span>📦</span> 僕のマイニューギア
-          </h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <span>📦</span> 僕のマイニューギア
+            </h1>
+            <AuthStatus />
+          </div>
           <p className="text-xs text-neutral-400 mt-1">
             買ったガジェットを手元ですぐ記録。ワンクリックでXにシェアできます。
           </p>
