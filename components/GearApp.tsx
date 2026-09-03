@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   createGearAction,
@@ -10,7 +10,15 @@ import {
 } from "@/app/actions/gears";
 import AuthStatus from "@/components/AuthStatus";
 import GearCard from "@/components/GearCard";
+import GearDetailModal from "@/components/GearDetailModal";
 import GearForm from "@/components/GearForm";
+import {
+  DEFAULT_GEAR_SORT,
+  GEAR_SORT_OPTIONS,
+  isGearSort,
+  sortGears,
+  type GearSort,
+} from "@/lib/gearSort";
 import { createClient } from "@/lib/supabase/client";
 import type { Gear } from "@/types/gear";
 
@@ -25,6 +33,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
+const GEAR_SORT_STORAGE_KEY = "my-new-gear:owner-list-sort";
 
 export default function GearApp({ gears }: GearAppProps) {
   const router = useRouter();
@@ -40,8 +49,31 @@ export default function GearApp({ gears }: GearAppProps) {
   const [filterDisposed, setFilterDisposed] = useState<
     "all" | "active" | "disposed"
   >("all");
+  const [sort, setSort] = useState<GearSort>(DEFAULT_GEAR_SORT);
+  const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const storedSort = window.localStorage.getItem(GEAR_SORT_STORAGE_KEY);
+        if (isGearSort(storedSort)) setSort(storedSort);
+      } catch {
+        // The default remains available when storage is blocked.
+      }
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  const changeSort = (nextSort: GearSort) => {
+    setSort(nextSort);
+    try {
+      window.localStorage.setItem(GEAR_SORT_STORAGE_KEY, nextSort);
+    } catch {
+      // Sorting still works for the current visit when storage is blocked.
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -206,6 +238,8 @@ export default function GearApp({ gears }: GearAppProps) {
     if (filterDisposed === "disposed") return gear.isDisposed;
     return true;
   });
+  const displayedGears = sortGears(filteredGears, sort);
+  const selectedGear = gears.find((gear) => gear.id === selectedGearId);
 
   return (
     <div className="min-h-screen bg-neutral-950 p-4 font-sans text-neutral-100 md:p-8">
@@ -238,43 +272,71 @@ export default function GearApp({ gears }: GearAppProps) {
         />
 
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <h2 className="text-sm font-semibold text-neutral-300">
               記録したガジェット ({filteredGears.length})
             </h2>
 
-            <div className="flex gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-1 text-xs">
-              {(["all", "active", "disposed"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setFilterDisposed(mode)}
-                  className={`rounded px-2.5 py-1 transition-colors ${
-                    filterDisposed === mode
-                      ? "bg-neutral-800 font-medium text-white"
-                      : "text-neutral-400 hover:text-neutral-200"
-                  }`}
+            <div className="flex flex-wrap items-end gap-2">
+              <label>
+                <span className="sr-only">並び順</span>
+                <select
+                  aria-label="並び順"
+                  value={sort}
+                  onChange={(event) =>
+                    changeSort(event.target.value as GearSort)
+                  }
+                  className="min-h-9 rounded-lg border border-neutral-700 bg-neutral-900 px-2.5 text-xs text-neutral-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
-                  {mode === "all"
-                    ? "すべて"
-                    : mode === "active"
-                      ? "所持中"
-                      : "手放し済"}
-                </button>
-              ))}
+                  {GEAR_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div
+                className="flex min-h-9 gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-1 text-xs"
+                aria-label="所持状態で絞り込む"
+              >
+                {(["all", "active", "disposed"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setFilterDisposed(mode)}
+                    aria-pressed={filterDisposed === mode}
+                    className={`rounded px-2.5 py-1 transition-colors ${
+                      filterDisposed === mode
+                        ? "bg-neutral-800 font-medium text-white"
+                        : "text-neutral-400 hover:text-neutral-200"
+                    }`}
+                  >
+                    {mode === "all"
+                      ? "すべて"
+                      : mode === "active"
+                        ? "所持中"
+                        : "手放し済"}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {filteredGears.length === 0 ? (
+          {displayedGears.length === 0 ? (
             <div className="rounded-xl border border-dashed border-neutral-800 py-12 text-center text-sm text-neutral-500">
-              記録されたガジェットがありません。
+              {gears.length === 0
+                ? "まだガジェットが登録されていません。"
+                : filterDisposed === "active"
+                  ? "所持中のガジェットはありません。"
+                  : "手放し済みのガジェットはありません。"}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
-              {filteredGears.map((gear) => (
+              {displayedGears.map((gear) => (
                 <GearCard
                   key={gear.id}
                   gear={gear}
+                  onOpen={(item) => setSelectedGearId(item.id)}
                   onShare={shareToX}
                   onToggleDisposed={toggleDisposed}
                   onDelete={deleteGear}
@@ -284,6 +346,12 @@ export default function GearApp({ gears }: GearAppProps) {
           )}
         </section>
       </div>
+      {selectedGear && (
+        <GearDetailModal
+          gear={selectedGear}
+          onClose={() => setSelectedGearId(null)}
+        />
+      )}
     </div>
   );
 }
