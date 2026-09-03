@@ -119,10 +119,13 @@ export default function GearForm({
             id="gear-photo"
             type="file"
             ref={fileInputRef}
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={handleFileChange}
             className="w-full text-xs text-neutral-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-neutral-200 hover:file:bg-neutral-700 cursor-pointer"
           />
+          <p className="mt-1 text-xs text-neutral-500">
+            JPEG・PNG・WebP・GIF、10MBまで
+          </p>
         </div>
 
         <div>
