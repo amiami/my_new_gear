@@ -1,7 +1,10 @@
+import Image from "next/image";
+
 import type { Gear } from "@/types/gear";
 
 type GearCardProps = {
   gear: Gear;
+  onOpen: (gear: Gear) => void;
   onShare: (gear: Gear) => void;
   onToggleDisposed: (id: string) => void;
   onDelete: (id: string) => void;
@@ -9,6 +12,7 @@ type GearCardProps = {
 
 export default function GearCard({
   gear,
+  onOpen,
   onShare,
   onToggleDisposed,
   onDelete,
@@ -24,9 +28,9 @@ export default function GearCard({
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-base text-white">
+            <button type="button" onClick={() => onOpen(gear)} className="break-words text-left text-base font-semibold text-white underline-offset-4 hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
               {gear.name}
-            </span>
+            </button>
 
             {gear.isDisposed && (
               <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">
@@ -53,14 +57,16 @@ export default function GearCard({
       </div>
 
       {gear.imageUrl && (
-        <div className="relative w-full h-48 sm:h-56 bg-neutral-950 rounded-lg overflow-hidden border border-neutral-800">
-          <img
+        <button type="button" onClick={() => onOpen(gear)} aria-label={`${gear.name}の詳細を開く`} className="relative h-48 w-full overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:h-56">
+          <Image
             src={gear.imageUrl}
             alt={gear.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
+            fill
+            unoptimized
+            sizes="(max-width: 672px) 100vw, 672px"
+            className="object-cover"
           />
-        </div>
+        </button>
       )}
 
       {gear.comment && (
