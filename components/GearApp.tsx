@@ -18,6 +18,14 @@ type GearAppProps = {
   gears: Gear[];
 };
 
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
 export default function GearApp({ gears }: GearAppProps) {
   const router = useRouter();
   const [supabase] = useState(createClient);
@@ -44,6 +52,14 @@ export default function GearApp({ gears }: GearAppProps) {
 
     try {
       if (selectedFile) {
+        if (!ALLOWED_IMAGE_TYPES.has(selectedFile.type)) {
+          throw new Error("画像はJPEG、PNG、WebP、GIF形式を選択してください。");
+        }
+
+        if (selectedFile.size > MAX_IMAGE_SIZE) {
+          throw new Error("画像は10MB以下を選択してください。");
+        }
+
         const {
           data: { user },
           error: userError,

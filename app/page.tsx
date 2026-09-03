@@ -16,11 +16,20 @@ export default async function HomePage() {
   }
 
   const rows = await listGears();
-  const gears: Gear[] = rows.map((row) => {
-    const imageUrl = row.image_path
-      ? supabase.storage.from("gear-images").getPublicUrl(row.image_path).data
-          .publicUrl
-      : undefined;
+  const gears: Gear[] = await Promise.all(rows.map(async (row) => {
+    let imageUrl: string | undefined;
+
+    if (row.image_path) {
+      const { data, error } = await supabase.storage
+        .from("gear-images")
+        .createSignedUrl(row.image_path, 60 * 60);
+
+      if (error) {
+        console.error("Failed to create a signed image URL:", error);
+      } else {
+        imageUrl = data.signedUrl;
+      }
+    }
 
     return {
       id: row.id,
@@ -33,7 +42,7 @@ export default async function HomePage() {
       isDisposed: row.is_disposed,
       createdAt: row.created_at,
     };
-  });
+  }));
 
   return <GearApp gears={gears} />;
 }

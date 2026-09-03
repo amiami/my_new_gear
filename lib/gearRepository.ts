@@ -54,6 +54,10 @@ export async function createGear(
 ): Promise<GearRow> {
   const { supabase, user } = await getAuthenticatedClient();
 
+  if (input.image_path && !input.image_path.startsWith(`${user.id}/`)) {
+    throw new Error("画像の保存先が正しくありません");
+  }
+
   const gear: TablesInsert<"gears"> = {
     ...input,
     user_id: user.id,
@@ -100,6 +104,27 @@ export async function updateGearDisposed(
 
 export async function deleteGear(id: string): Promise<void> {
   const { supabase, user } = await getAuthenticatedClient();
+
+  const { data: gear, error: fetchError } = await supabase
+    .from("gears")
+    .select("image_path")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError) {
+    throw new Error(`削除対象の取得に失敗しました: ${fetchError.message}`);
+  }
+
+  if (gear.image_path) {
+    const { error: imageError } = await supabase.storage
+      .from("gear-images")
+      .remove([gear.image_path]);
+
+    if (imageError) {
+      throw new Error(`画像の削除に失敗しました: ${imageError.message}`);
+    }
+  }
 
   const { error } = await supabase
     .from("gears")
