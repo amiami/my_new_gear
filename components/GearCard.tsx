@@ -34,7 +34,7 @@ export default function GearCard({
 
             {gear.isDisposed && (
               <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">
-                Disposed
+                手放し済み
               </span>
             )}
           </div>

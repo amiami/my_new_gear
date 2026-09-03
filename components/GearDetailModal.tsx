@@ -81,7 +81,7 @@ export default function GearDetailModal({ gear, onClose }: GearDetailModalProps)
           >
             <h2 id="gear-detail-title" className="sr-only">{gear.name}の画像</h2>
             <button type="button" autoFocus onClick={() => setIsImageExpanded(false)} aria-label="画像の拡大表示を閉じる"
-              className="absolute right-3 top-3 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-neutral-600 bg-neutral-900/90 text-xl text-white hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">×</button>
+              className="absolute right-3 top-3 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full bg-neutral-900/90 text-xl text-white hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">×</button>
             <div className="relative h-[calc(100dvh-5rem)] w-full">
               <Image src={gear.imageUrl!} alt={`${gear.name}の登録画像`} fill unoptimized sizes="100vw" className="object-contain" onError={() => setImageFailed(true)} />
             </div>
@@ -89,7 +89,7 @@ export default function GearDetailModal({ gear, onClose }: GearDetailModalProps)
         ) : (
           <>
             <button type="button" onClick={onClose} aria-label="Gear詳細を閉じる"
-              className="absolute right-3 top-3 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-neutral-600 bg-neutral-900/90 text-xl text-white hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">×</button>
+              className="absolute right-3 top-3 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full bg-neutral-900/90 text-xl text-white hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">×</button>
             <div className="grid md:grid-cols-[minmax(0,3fr)_minmax(18rem,2fr)]">
               <div className="flex min-h-64 items-center justify-center bg-neutral-950 p-4 md:min-h-[34rem]">
                 {hasImage ? (

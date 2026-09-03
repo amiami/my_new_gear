@@ -278,9 +278,10 @@ export default function GearApp({ gears }: GearAppProps) {
             </h2>
 
             <div className="flex flex-wrap items-end gap-2">
-              <label className="flex flex-col gap-1 text-xs text-neutral-400">
-                並び順
+              <label>
+                <span className="sr-only">並び順</span>
                 <select
+                  aria-label="並び順"
                   value={sort}
                   onChange={(event) =>
                     changeSort(event.target.value as GearSort)
