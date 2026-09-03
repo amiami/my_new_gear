@@ -43,7 +43,7 @@ export async function listGears(): Promise<GearRow[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(`Gearの取得に失敗しました: ${error.message}`);
+    throw new Error(`ガジェットの取得に失敗しました: ${error.message}`);
   }
 
   return data;
@@ -66,7 +66,7 @@ export async function createGear(
     .single();
 
   if (error) {
-    throw new Error(`Gearの登録に失敗しました: ${error.message}`);
+    throw new Error(`ガジェットの登録に失敗しました: ${error.message}`);
   }
 
   return data;
@@ -92,7 +92,7 @@ export async function updateGearDisposed(
     .single();
 
   if (error) {
-    throw new Error(`Gearの更新に失敗しました: ${error.message}`);
+    throw new Error(`ガジェットの更新に失敗しました: ${error.message}`);
   }
 
   return data;
@@ -108,6 +108,6 @@ export async function deleteGear(id: string): Promise<void> {
     .eq("user_id", user.id);
 
   if (error) {
-    throw new Error(`Gearの削除に失敗しました: ${error.message}`);
+    throw new Error(`ガジェットの削除に失敗しました: ${error.message}`);
   }
 }
