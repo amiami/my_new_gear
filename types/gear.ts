@@ -4,7 +4,8 @@ export type Gear = {
   boughtAtDate: string;
   boughtLocation: string;
   comment: string;
+  imagePath?: string;
   imageUrl?: string;
   isDisposed: boolean;
-  createdAt: number;
+  createdAt: string;
 };
