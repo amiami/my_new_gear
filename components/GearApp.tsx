@@ -56,7 +56,7 @@ export default function GearApp({ gears }: GearAppProps) {
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
   const [publishRequest, setPublishRequest] = useState<{
     gear: Gear;
-    intent: "publish" | "share";
+    intent: "publish" | "share" | "unpublish";
   } | null>(null);
   const [publishingGearId, setPublishingGearId] = useState<string | null>(null);
   const [publishError, setPublishError] = useState("");
@@ -260,26 +260,8 @@ export default function GearApp({ gears }: GearAppProps) {
       return;
     }
 
-    if (
-      !window.confirm(
-        "公開を解除しますか？ 現在のURLは無効になり、再公開しても同じURLには戻りません。",
-      )
-    ) {
-      return;
-    }
-
-    setPublishingGearId(gear.id);
-    setPublishStatus("");
-    const result = await unpublishGearAction(gear.id);
-    setPublishingGearId(null);
-
-    if (!result.success) {
-      setPublishStatus(result.error);
-      return;
-    }
-
-    setPublishStatus(`${gear.name}の公開を解除しました。`);
-    router.refresh();
+    setPublishError("");
+    setPublishRequest({ gear, intent: "unpublish" });
   };
 
   const confirmPublish = async () => {
@@ -289,6 +271,23 @@ export default function GearApp({ gears }: GearAppProps) {
     setPublishingGearId(gear.id);
     setPublishError("");
     setPublishStatus("");
+
+    if (intent === "unpublish") {
+      const result = await unpublishGearAction(gear.id);
+
+      if (!result.success) {
+        setPublishingGearId(null);
+        setPublishError(result.error);
+        return;
+      }
+
+      setPublishRequest(null);
+      setPublishingGearId(null);
+      setPublishStatus(`${gear.name}の公開を解除しました。`);
+      router.refresh();
+      return;
+    }
+
     const result = await publishGearAction(gear.id);
 
     if (!result.success) {
@@ -453,7 +452,7 @@ export default function GearApp({ gears }: GearAppProps) {
       {publishRequest && (
         <PublishGearDialog
           gear={publishRequest.gear}
-          isSharing={publishRequest.intent === "share"}
+          intent={publishRequest.intent}
           isSubmitting={publishingGearId === publishRequest.gear.id}
           error={publishError}
           onCancel={() => {
