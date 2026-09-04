@@ -144,8 +144,8 @@ export default function GearCard({
           >
             <span
               aria-hidden="true"
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                gear.shareId ? "translate-x-5" : "translate-x-0.5"
+              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                gear.shareId ? "translate-x-5" : "translate-x-0"
               }`}
             />
           </button>

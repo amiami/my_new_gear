@@ -49,6 +49,7 @@ export default async function PublicGearPage({ params }: PublicGearPageProps) {
               alt={`${gear.name}の画像`}
               fill
               unoptimized
+              preload
               sizes="(max-width: 768px) 100vw, 768px"
               className="object-contain"
             />
