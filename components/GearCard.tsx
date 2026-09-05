@@ -6,6 +6,9 @@ type GearCardProps = {
   gear: Gear;
   onOpen: (gear: Gear) => void;
   onShare: (gear: Gear) => void;
+  onPublishChange: (gear: Gear, shouldPublish: boolean) => void;
+  onCopyPublicUrl: (gear: Gear) => void;
+  isPublishPending: boolean;
   onToggleDisposed: (id: string) => void;
   onDelete: (id: string) => void;
 };
@@ -14,6 +17,9 @@ export default function GearCard({
   gear,
   onOpen,
   onShare,
+  onPublishChange,
+  onCopyPublicUrl,
+  isPublishPending,
   onToggleDisposed,
   onDelete,
 }: GearCardProps) {
@@ -93,6 +99,57 @@ export default function GearCard({
         >
           削除
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-800/60 pt-3 text-xs">
+        <div>
+          <p className="font-medium text-neutral-200">公開ページ</p>
+          <p className={gear.shareId ? "text-emerald-400" : "text-neutral-500"}>
+            {gear.shareId ? "公開中" : "非公開"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {gear.shareId && (
+            <div className="flex items-center gap-3">
+              <a
+                href={`/gadgets/${gear.shareId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-neutral-300 underline underline-offset-4 hover:text-white focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                公開ページを見る
+              </a>
+              <button
+                type="button"
+                onClick={() => onCopyPublicUrl(gear)}
+                className="text-neutral-300 underline underline-offset-4 hover:text-white focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                URLをコピー
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={Boolean(gear.shareId)}
+            aria-label={`${gear.name}の公開ページ`}
+            onClick={() => onPublishChange(gear, !gear.shareId)}
+            disabled={isPublishPending}
+            className={`relative h-7 w-12 rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+              gear.shareId
+                ? "border-emerald-500 bg-emerald-600"
+                : "border-neutral-600 bg-neutral-800"
+            } disabled:cursor-wait disabled:opacity-50`}
+          >
+            <span
+              aria-hidden="true"
+              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                gear.shareId ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

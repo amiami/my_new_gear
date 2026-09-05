@@ -6,6 +6,7 @@ export type Gear = {
   comment: string;
   imagePath?: string;
   imageUrl?: string;
+  shareId?: string;
   isDisposed: boolean;
   createdAt: string;
 };

@@ -19,7 +19,11 @@ Node.js 22と、Supabase CLIを利用できる環境が必要です。
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=SupabaseプロジェクトのURL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=SupabaseのPublishable key
+SUPABASE_SECRET_KEY=SupabaseのSecret key
 ```
+
+`SUPABASE_SECRET_KEY` は公開ページから公開中のガジェットだけを取得するために、
+サーバー上でのみ使用します。`NEXT_PUBLIC_` を付けたり、ブラウザへ渡したりしないでください。
 
 依存パッケージをインストールし、開発サーバーを起動します。
 
@@ -46,6 +50,10 @@ npx supabase migration list
 npx supabase db push
 ```
 
-Gearの元画像は非公開の `gear-images` バケットに保存されます。画像はユーザーIDごとのフォルダに分離され、所有者だけが期限付きURLで閲覧できます。対応形式はJPEG、PNG、WebP、GIFで、上限は10MBです。
+ガジェットの元画像は非公開の `gear-images` バケットに保存されます。画像はユーザーIDごとのフォルダに分離され、所有者だけが期限付きURLで閲覧できます。対応形式はJPEG、PNG、WebP、GIFで、上限は10MBです。
+
+公開したガジェットは `/gadgets/{share_id}` で個別に閲覧できます。公開画像も
+公開状態を毎回確認するサーバー経路から配信され、Storageバケット自体は非公開のままです。
+公開を解除して再公開すると、新しい共有URLが発行されます。
 
 以前のlocalStorageに保存されたデータは自動移行されません。必要な記録はログイン後に手動で再登録してください。

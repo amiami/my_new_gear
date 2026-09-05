@@ -39,6 +39,7 @@ export default async function HomePage() {
       comment: row.comment,
       imagePath: row.image_path ?? undefined,
       imageUrl,
+      shareId: row.gear_shares?.share_id,
       isDisposed: row.is_disposed,
       createdAt: row.created_at,
     };

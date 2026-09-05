@@ -6,12 +6,15 @@ import { useEffect, useRef, useState } from "react";
 import {
   createGearAction,
   deleteGearAction,
+  publishGearAction,
+  unpublishGearAction,
   updateGearDisposedAction,
 } from "@/app/actions/gears";
 import AuthStatus from "@/components/AuthStatus";
 import GearCard from "@/components/GearCard";
 import GearDetailModal from "@/components/GearDetailModal";
 import GearForm from "@/components/GearForm";
+import PublishGearDialog from "@/components/PublishGearDialog";
 import {
   DEFAULT_GEAR_SORT,
   GEAR_SORT_OPTIONS,
@@ -51,6 +54,13 @@ export default function GearApp({ gears }: GearAppProps) {
   >("all");
   const [sort, setSort] = useState<GearSort>(DEFAULT_GEAR_SORT);
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
+  const [publishRequest, setPublishRequest] = useState<{
+    gear: Gear;
+    intent: "publish" | "share" | "unpublish";
+  } | null>(null);
+  const [publishingGearId, setPublishingGearId] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState("");
+  const [publishStatus, setPublishStatus] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -233,6 +243,82 @@ export default function GearApp({ gears }: GearAppProps) {
     );
   };
 
+  const requestShareToX = (gear: Gear) => {
+    if (gear.shareId) {
+      void shareToX(gear);
+      return;
+    }
+
+    setPublishError("");
+    setPublishRequest({ gear, intent: "share" });
+  };
+
+  const changePublished = async (gear: Gear, shouldPublish: boolean) => {
+    if (shouldPublish) {
+      setPublishError("");
+      setPublishRequest({ gear, intent: "publish" });
+      return;
+    }
+
+    setPublishError("");
+    setPublishRequest({ gear, intent: "unpublish" });
+  };
+
+  const confirmPublish = async () => {
+    if (!publishRequest) return;
+
+    const { gear, intent } = publishRequest;
+    setPublishingGearId(gear.id);
+    setPublishError("");
+    setPublishStatus("");
+
+    if (intent === "unpublish") {
+      const result = await unpublishGearAction(gear.id);
+
+      if (!result.success) {
+        setPublishingGearId(null);
+        setPublishError(result.error);
+        return;
+      }
+
+      setPublishRequest(null);
+      setPublishingGearId(null);
+      setPublishStatus(`${gear.name}の公開を解除しました。`);
+      router.refresh();
+      return;
+    }
+
+    const result = await publishGearAction(gear.id);
+
+    if (!result.success) {
+      setPublishingGearId(null);
+      setPublishError(result.error);
+      return;
+    }
+
+    setPublishRequest(null);
+    setPublishingGearId(null);
+    setPublishStatus(`${gear.name}を公開しました。`);
+    router.refresh();
+
+    if (intent === "share") {
+      await shareToX({ ...gear, shareId: result.shareId });
+    }
+  };
+
+  const copyPublicUrl = async (gear: Gear) => {
+    if (!gear.shareId) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/gadgets/${gear.shareId}`,
+      );
+      setPublishStatus(`${gear.name}の公開URLをコピーしました。`);
+    } catch {
+      setPublishStatus("公開URLをコピーできませんでした。");
+    }
+  };
+
   const filteredGears = gears.filter((gear) => {
     if (filterDisposed === "active") return !gear.isDisposed;
     if (filterDisposed === "disposed") return gear.isDisposed;
@@ -272,6 +358,14 @@ export default function GearApp({ gears }: GearAppProps) {
         />
 
         <section className="space-y-4">
+          {publishStatus && (
+            <p
+              className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs text-neutral-300"
+              aria-live="polite"
+            >
+              {publishStatus}
+            </p>
+          )}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <h2 className="text-sm font-semibold text-neutral-300">
               記録したガジェット ({filteredGears.length})
@@ -337,7 +431,10 @@ export default function GearApp({ gears }: GearAppProps) {
                   key={gear.id}
                   gear={gear}
                   onOpen={(item) => setSelectedGearId(item.id)}
-                  onShare={shareToX}
+                  onShare={requestShareToX}
+                  onPublishChange={changePublished}
+                  onCopyPublicUrl={copyPublicUrl}
+                  isPublishPending={publishingGearId === gear.id}
                   onToggleDisposed={toggleDisposed}
                   onDelete={deleteGear}
                 />
@@ -350,6 +447,18 @@ export default function GearApp({ gears }: GearAppProps) {
         <GearDetailModal
           gear={selectedGear}
           onClose={() => setSelectedGearId(null)}
+        />
+      )}
+      {publishRequest && (
+        <PublishGearDialog
+          gear={publishRequest.gear}
+          intent={publishRequest.intent}
+          isSubmitting={publishingGearId === publishRequest.gear.id}
+          error={publishError}
+          onCancel={() => {
+            if (!publishingGearId) setPublishRequest(null);
+          }}
+          onConfirm={confirmPublish}
         />
       )}
     </div>

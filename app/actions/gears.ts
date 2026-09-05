@@ -5,11 +5,17 @@ import { revalidatePath } from "next/cache";
 import {
   createGear,
   deleteGear,
+  publishGear,
+  unpublishGear,
   updateGearDisposed,
 } from "@/lib/gearRepository";
 
 export type GearActionResult =
   | { success: true }
+  | { success: false; error: string };
+
+export type PublishGearActionResult =
+  | { success: true; shareId: string }
   | { success: false; error: string };
 
 export type CreateGearActionInput = {
@@ -84,6 +90,40 @@ export async function updateGearDisposedAction(
   } catch (error) {
     console.error("Failed to update gear:", error);
     return { success: false, error: "ガジェットの更新に失敗しました。" };
+  }
+}
+
+export async function publishGearAction(
+  id: string,
+): Promise<PublishGearActionResult> {
+  if (!UUID_PATTERN.test(id)) {
+    return { success: false, error: "公開対象が正しくありません。" };
+  }
+
+  try {
+    const shareId = await publishGear(id);
+    revalidatePath("/");
+    return { success: true, shareId };
+  } catch (error) {
+    console.error("Failed to publish gear:", error);
+    return { success: false, error: "ガジェットの公開に失敗しました。" };
+  }
+}
+
+export async function unpublishGearAction(
+  id: string,
+): Promise<GearActionResult> {
+  if (!UUID_PATTERN.test(id)) {
+    return { success: false, error: "公開解除の対象が正しくありません。" };
+  }
+
+  try {
+    await unpublishGear(id);
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to unpublish gear:", error);
+    return { success: false, error: "ガジェットの公開解除に失敗しました。" };
   }
 }
 

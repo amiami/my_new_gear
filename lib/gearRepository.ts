@@ -8,6 +8,9 @@ import type {
 } from "@/types/database";
 
 export type GearRow = Tables<"gears">;
+export type GearRowWithShare = GearRow & {
+  gear_shares: Pick<Tables<"gear_shares">, "share_id"> | null;
+};
 
 export type CreateGearInput = Pick<
   TablesInsert<"gears">,
@@ -33,12 +36,12 @@ async function getAuthenticatedClient() {
   return { supabase, user };
 }
 
-export async function listGears(): Promise<GearRow[]> {
+export async function listGears(): Promise<GearRowWithShare[]> {
   const { supabase, user } = await getAuthenticatedClient();
 
   const { data, error } = await supabase
     .from("gears")
-    .select("*")
+    .select("*, gear_shares(share_id)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -47,6 +50,57 @@ export async function listGears(): Promise<GearRow[]> {
   }
 
   return data;
+}
+
+export async function publishGear(id: string): Promise<string> {
+  const { supabase } = await getAuthenticatedClient();
+
+  const { data: existing, error: existingError } = await supabase
+    .from("gear_shares")
+    .select("share_id")
+    .eq("gear_id", id)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`公開状態の取得に失敗しました: ${existingError.message}`);
+  }
+
+  if (existing) return existing.share_id;
+
+  const { data, error } = await supabase
+    .from("gear_shares")
+    .insert({ gear_id: id })
+    .select("share_id")
+    .single();
+
+  if (error) {
+    // 同時操作で先に公開された場合は、その共有IDを返して冪等に扱う。
+    if (error.code === "23505") {
+      const { data: concurrentShare, error: concurrentError } = await supabase
+        .from("gear_shares")
+        .select("share_id")
+        .eq("gear_id", id)
+        .single();
+
+      if (!concurrentError) return concurrentShare.share_id;
+    }
+
+    throw new Error(`ガジェットの公開に失敗しました: ${error.message}`);
+  }
+
+  return data.share_id;
+}
+
+export async function unpublishGear(id: string): Promise<void> {
+  const { supabase } = await getAuthenticatedClient();
+  const { error } = await supabase
+    .from("gear_shares")
+    .delete()
+    .eq("gear_id", id);
+
+  if (error) {
+    throw new Error(`ガジェットの公開解除に失敗しました: ${error.message}`);
+  }
 }
 
 export async function createGear(
@@ -115,6 +169,9 @@ export async function deleteGear(id: string): Promise<void> {
   if (fetchError) {
     throw new Error(`削除対象の取得に失敗しました: ${fetchError.message}`);
   }
+
+  // 外部公開を最初に止め、後続処理が失敗しても公開URLだけが残らないようにする。
+  await unpublishGear(id);
 
   if (gear.image_path) {
     const { error: imageError } = await supabase.storage

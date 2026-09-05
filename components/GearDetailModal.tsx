@@ -88,7 +88,7 @@ export default function GearDetailModal({ gear, onClose }: GearDetailModalProps)
           </div>
         ) : (
           <>
-            <button type="button" onClick={onClose} aria-label="Gear詳細を閉じる"
+            <button type="button" onClick={onClose} aria-label="ガジェット詳細を閉じる"
               className="absolute right-3 top-3 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full bg-neutral-900/90 text-xl text-white hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">×</button>
             <div className="grid md:grid-cols-[minmax(0,3fr)_minmax(18rem,2fr)]">
               <div className="flex min-h-64 items-center justify-center bg-neutral-950 p-4 md:min-h-[34rem]">
@@ -104,7 +104,7 @@ export default function GearDetailModal({ gear, onClose }: GearDetailModalProps)
               </div>
               <div className="min-w-0 space-y-6 p-5 pr-16 sm:p-7 sm:pr-20">
                 <div>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-widest text-neutral-500">Gear details</p>
+                  <p className="mb-2 text-xs font-medium tracking-widest text-neutral-500">ガジェット詳細</p>
                   <h2 id="gear-detail-title" className="break-words text-2xl font-bold text-white">{gear.name}</h2>
                   <span className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${gear.isDisposed ? "border-neutral-700 bg-neutral-800 text-neutral-300" : "border-emerald-800 bg-emerald-950 text-emerald-300"}`}>
                     {gear.isDisposed ? "手放し済み" : "所持中"}

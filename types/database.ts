@@ -34,6 +34,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      gear_shares: {
+        Row: {
+          created_at: string
+          gear_id: string
+          share_id: string
+        }
+        Insert: {
+          created_at?: string
+          gear_id: string
+          share_id?: string
+        }
+        Update: {
+          created_at?: string
+          gear_id?: string
+          share_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gear_shares_gear_id_fkey"
+            columns: ["gear_id"]
+            isOneToOne: true
+            referencedRelation: "gears"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gears: {
         Row: {
           bought_at: string | null
@@ -214,4 +240,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
