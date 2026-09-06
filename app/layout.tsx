@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, WDXL_Lubrifont_JP_N } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 
@@ -13,6 +13,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const wdxlLubrifont = WDXL_Lubrifont_JP_N({
+  variable: "--font-wdxl-lubrifont",
+  weight: "400",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: "僕のマイニューギア",
   description: "購入したガジェットを簡単に記録・Xへシェアできるアプリ",
@@ -22,7 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${wdxlLubrifont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

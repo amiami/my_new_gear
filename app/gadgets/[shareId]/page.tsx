@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { findPublishedGear } from "@/lib/publicGearRepository";
@@ -15,13 +16,45 @@ function formatBoughtAt(date: string) {
   return `${year}年${month}月${day}日に購入`;
 }
 
+async function getMetadataBase() {
+  const requestHeaders = await headers();
+  const forwardedHost = requestHeaders.get("x-forwarded-host")?.split(",")[0];
+  const host = forwardedHost ?? requestHeaders.get("host");
+  const forwardedProto = requestHeaders.get("x-forwarded-proto")?.split(",")[0];
+  const protocol = forwardedProto === "http" ? "http" : "https";
+
+  if (host) {
+    try {
+      return new URL(`${protocol}://${host}`);
+    } catch {
+      // Fall through to the deployment URL when forwarding headers are invalid.
+    }
+  }
+
+  const deploymentHost =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ??
+    process.env.VERCEL_URL;
+  return new URL(
+    deploymentHost
+      ? deploymentHost.startsWith("http")
+        ? deploymentHost
+        : `https://${deploymentHost}`
+      : "http://localhost:3001",
+  );
+}
+
 export async function generateMetadata({
   params,
 }: PublicGearPageProps): Promise<Metadata> {
   const { shareId } = await params;
-  const gear = await findPublishedGear(shareId);
+  const [gear, metadataBase] = await Promise.all([
+    findPublishedGear(shareId),
+    getMetadataBase(),
+  ]);
 
   return {
+    metadataBase,
     title: gear ? `${gear.name} | 僕のマイニューギア` : "ページが見つかりません",
     description: gear?.comment
       ? gear.comment.slice(0, 120)
@@ -30,6 +63,29 @@ export async function generateMetadata({
       index: false,
       follow: false,
     },
+    ...(gear
+      ? {
+          openGraph: {
+            title: gear.name,
+            description: "僕のマイニューギアで公開されたガジェットです。",
+            type: "website",
+            images: [
+              {
+                url: `/gadgets/${shareId}/opengraph-image`,
+                width: 1200,
+                height: 630,
+                alt: `${gear.name}のシェア画像`,
+              },
+            ],
+          },
+          twitter: {
+            card: "summary_large_image",
+            title: gear.name,
+            description: "僕のマイニューギアで公開されたガジェットです。",
+            images: [`/gadgets/${shareId}/opengraph-image`],
+          },
+        }
+      : {}),
   };
 }
 

@@ -23,6 +23,7 @@ import {
   type GearSort,
 } from "@/lib/gearSort";
 import { createClient } from "@/lib/supabase/client";
+import { buildPublicGearUrl, buildXIntentUrl } from "@/lib/xShare";
 import type { Gear } from "@/types/gear";
 
 type GearAppProps = {
@@ -37,6 +38,23 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
 ]);
 const GEAR_SORT_STORAGE_KEY = "my-new-gear:owner-list-sort";
+
+function isMobileDevice() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+function openXShareWindow() {
+  const width = 550;
+  const height = 520;
+  const left = window.screenX + (window.outerWidth - width) / 2;
+  const top = window.screenY + (window.outerHeight - height) / 2;
+
+  return window.open(
+    "",
+    "shareToXWindow",
+    `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`,
+  );
+}
 
 export default function GearApp({ gears }: GearAppProps) {
   const router = useRouter();
@@ -187,65 +205,24 @@ export default function GearApp({ gears }: GearAppProps) {
     router.refresh();
   };
 
-  const shareToX = async (gear: Gear) => {
-    const text = "My new gear...";
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const shareToX = (gear: Gear, pendingWindow?: Window | null) => {
+    if (!gear.shareId) return;
 
-    if (isMobile && gear.imageUrl && navigator.share && navigator.canShare) {
-      try {
-        const response = await fetch(gear.imageUrl);
-        const blob = await response.blob();
-        const file = new File([blob], "mynewgear.png", {
-          type: blob.type || "image/png",
-        });
+    const publicUrl = buildPublicGearUrl(window.location.origin, gear.shareId);
+    const shareUrl = buildXIntentUrl(publicUrl);
 
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ text, files: [file] });
-          return;
-        }
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-      }
-    }
-
-    if (
-      !isMobile &&
-      gear.imageUrl &&
-      navigator.clipboard &&
-      window.ClipboardItem
-    ) {
-      try {
-        const response = await fetch(gear.imageUrl);
-        const blob = await response.blob();
-        const item = new ClipboardItem({ [blob.type]: blob });
-        await navigator.clipboard.write([item]);
-      } catch (error) {
-        console.warn("クリップボードへの画像コピーをスキップしました:", error);
-      }
-    }
-
-    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-
-    if (isMobile) {
+    if (isMobileDevice()) {
       window.location.href = shareUrl;
       return;
     }
 
-    const width = 550;
-    const height = 420;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-
-    window.open(
-      shareUrl,
-      "shareToXWindow",
-      `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`,
-    );
+    const shareWindow = pendingWindow ?? openXShareWindow();
+    if (shareWindow) shareWindow.location.href = shareUrl;
   };
 
   const requestShareToX = (gear: Gear) => {
     if (gear.shareId) {
-      void shareToX(gear);
+      shareToX(gear);
       return;
     }
 
@@ -268,6 +245,9 @@ export default function GearApp({ gears }: GearAppProps) {
     if (!publishRequest) return;
 
     const { gear, intent } = publishRequest;
+    // 公開処理を待つ間にユーザー操作との関連が切れ、ポップアップが遮断されるのを防ぐ。
+    const pendingXWindow =
+      intent === "share" && !isMobileDevice() ? openXShareWindow() : null;
     setPublishingGearId(gear.id);
     setPublishError("");
     setPublishStatus("");
@@ -291,6 +271,7 @@ export default function GearApp({ gears }: GearAppProps) {
     const result = await publishGearAction(gear.id);
 
     if (!result.success) {
+      pendingXWindow?.close();
       setPublishingGearId(null);
       setPublishError(result.error);
       return;
@@ -302,7 +283,7 @@ export default function GearApp({ gears }: GearAppProps) {
     router.refresh();
 
     if (intent === "share") {
-      await shareToX({ ...gear, shareId: result.shareId });
+      shareToX({ ...gear, shareId: result.shareId }, pendingXWindow);
     }
   };
 
@@ -332,8 +313,9 @@ export default function GearApp({ gears }: GearAppProps) {
       <div className="mx-auto max-w-2xl space-y-8">
         <header className="border-b border-neutral-800 pb-4">
           <div className="flex items-center justify-between gap-4">
-            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-white">
-              <span>📦</span> 僕のマイニューギア
+            <h1 className="flex items-center gap-2 text-2xl tracking-tight text-white">
+              <span>📦</span>
+              <span className="font-brand">僕のマイニューギア</span>
             </h1>
             <AuthStatus />
           </div>
