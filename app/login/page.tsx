@@ -23,7 +23,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="flex min-h-screen items-center justify-center bg-neutral-950 p-4 text-neutral-100">
       <section className="w-full max-w-sm rounded-xl border border-neutral-800 bg-neutral-900 p-6 shadow-sm">
         <p className="mb-2 text-2xl">📦</p>
-        <h1 className="text-xl font-bold">僕のマイニューギア</h1>
+        <h1 className="font-brand text-xl">僕のマイニューギア</h1>
         <p className="mb-6 mt-2 text-sm leading-relaxed text-neutral-400">
           自分のガジェットを記録するにはログインしてください。
         </p>

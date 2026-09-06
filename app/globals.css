@@ -10,6 +10,12 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-brand: var(--font-wdxl-lubrifont);
+}
+
+.font-brand {
+  font-family: var(--font-wdxl-lubrifont), sans-serif;
+  font-weight: 400;
 }
 
 @media (prefers-color-scheme: dark) {
