@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 
-import { readImageDimensions } from "@/lib/imageDimensions";
+import type { NormalizedOgImage } from "@/lib/normalizeOgImage";
+import { normalizeOgImage } from "@/lib/normalizeOgImage";
 import {
   downloadPublishedGearImage,
   findPublishedGear,
@@ -16,6 +17,35 @@ const responseHeaders = {
   "X-Content-Type-Options": "nosniff",
 };
 
+const OGP_FONT_NAME = "WDXL Lubrifont JP N";
+const GOOGLE_FONTS_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1";
+
+async function loadOgpFont(text: string) {
+  try {
+    const cssUrl = new URL("https://fonts.googleapis.com/css2");
+    cssUrl.searchParams.set("family", OGP_FONT_NAME);
+    cssUrl.searchParams.set("text", text);
+
+    const cssResponse = await fetch(cssUrl, {
+      headers: { "User-Agent": GOOGLE_FONTS_USER_AGENT },
+      cache: "force-cache",
+    });
+    if (!cssResponse.ok) throw new Error(`CSS ${cssResponse.status}`);
+
+    const css = await cssResponse.text();
+    const fontUrl = css.match(/src: url\((.+)\) format\('truetype'\)/)?.[1];
+    if (!fontUrl) throw new Error("TTF URLが見つかりません");
+
+    const fontResponse = await fetch(fontUrl, { cache: "force-cache" });
+    if (!fontResponse.ok) throw new Error(`font ${fontResponse.status}`);
+    return await fontResponse.arrayBuffer();
+  } catch (error) {
+    console.error("Failed to load the OGP font:", error);
+    return null;
+  }
+}
+
 function Brand() {
   return (
     <div
@@ -23,13 +53,24 @@ function Brand() {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 14,
-        fontSize: 24,
-        fontWeight: 700,
-        letterSpacing: "0.04em",
+        gap: 10,
+        fontSize: 16,
+        fontWeight: 400,
+        letterSpacing: "0.03em",
+        opacity: 0.72,
+        fontFamily: OGP_FONT_NAME,
       }}
     >
-      <span style={{ color: "#a3e635" }}>●</span>
+      <span
+        style={{
+          width: 7,
+          height: 7,
+          display: "flex",
+          flex: "0 0 auto",
+          borderRadius: "50%",
+          background: "#a3e635",
+        }}
+      />
       <span>僕のマイニューギア</span>
     </div>
   );
@@ -41,9 +82,9 @@ function Title({ name, size = 58 }: { name: string; size?: number }) {
       lang="ja-JP"
       style={{
         display: "flex",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: OGP_FONT_NAME,
         fontSize: size,
-        fontWeight: 800,
+        fontWeight: 400,
         lineHeight: 1.2,
         letterSpacing: "-0.03em",
         overflow: "hidden",
@@ -64,37 +105,64 @@ function CommonImage() {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
+        justifyContent: "flex-end",
         padding: "66px 76px",
         color: "white",
+        position: "relative",
+        overflow: "hidden",
         backgroundImage:
-          "radial-gradient(circle at 82% 18%, #3f6212 0, #171717 35%, #050505 72%)",
-        fontFamily: "Arial, sans-serif",
+          "linear-gradient(125deg, #050505 0%, #171717 58%, #09090b 100%)",
+        fontFamily: OGP_FONT_NAME,
       }}
     >
-      <Brand />
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div
-          style={{
-            display: "flex",
-            color: "#a3e635",
-            fontFamily: "monospace",
-            fontSize: 28,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-          }}
-        >
-          NEW GADGET LOG
-        </div>
-        <div style={{ display: "flex", fontSize: 82, fontWeight: 800 }}>
+      <div
+        style={{
+          position: "absolute",
+          right: 76,
+          top: 72,
+          width: 260,
+          height: 2,
+          display: "flex",
+          background: "rgba(163,230,53,.7)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          right: 76,
+          top: 88,
+          width: 132,
+          height: 2,
+          display: "flex",
+          background: "rgba(255,255,255,.2)",
+        }}
+      />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+          marginBottom: 92,
+        }}
+      >
+        <div style={{ display: "flex", fontSize: 82, fontWeight: 400 }}>
           My new gear...
         </div>
+        <Brand />
       </div>
     </div>
   );
 }
 
-function LandscapeImage({ name, src }: { name: string; src: string }) {
+function LandscapeImage({
+  name,
+  src,
+  dimensions,
+}: {
+  name: string;
+  src: string;
+  dimensions: Pick<NormalizedOgImage, "width" | "height">;
+}) {
   return (
     <div
       style={{
@@ -109,30 +177,50 @@ function LandscapeImage({ name, src }: { name: string; src: string }) {
       <img
         src={src}
         alt=""
-        width={1200}
-        height={630}
+        width={dimensions.width}
+        height={dimensions.height}
         style={{ width: "100%", height: "100%", objectFit: "cover" }}
       />
       <div
         style={{
           position: "absolute",
-          inset: 0,
+          left: 0,
+          top: 0,
+          width: "100%",
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           padding: "46px 58px 52px",
           backgroundImage:
             "linear-gradient(to bottom, rgba(0,0,0,.36) 0%, rgba(0,0,0,.04) 38%, rgba(0,0,0,.9) 100%)",
         }}
       >
-        <Brand />
-        <Title name={name} />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            marginBottom: 38,
+          }}
+        >
+          <Title name={name} />
+          <Brand />
+        </div>
       </div>
     </div>
   );
 }
 
-function PortraitImage({ name, src }: { name: string; src: string }) {
+function PortraitImage({
+  name,
+  src,
+  dimensions,
+}: {
+  name: string;
+  src: string;
+  dimensions: Pick<NormalizedOgImage, "width" | "height">;
+}) {
   return (
     <div
       style={{
@@ -154,37 +242,56 @@ function PortraitImage({ name, src }: { name: string; src: string }) {
         <img
           src={src}
           alt=""
-          width={630}
-          height={630}
+          width={dimensions.width}
+          height={dimensions.height}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </div>
       <div
         style={{
+          position: "relative",
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           padding: "54px 50px 58px",
+          overflow: "hidden",
           backgroundImage:
-            "radial-gradient(circle at 100% 0%, #365314 0, #09090b 44%)",
+            "linear-gradient(145deg, #18181b 0%, #09090b 58%, #050505 100%)",
         }}
       >
-        <Brand />
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div
-            style={{
-              display: "flex",
-              color: "#a3e635",
-              fontFamily: "monospace",
-              fontSize: 22,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-            }}
-          >
-            MY NEW GEAR
-          </div>
+        <div
+          style={{
+            position: "absolute",
+            right: 50,
+            top: 54,
+            width: 180,
+            height: 2,
+            display: "flex",
+            background: "rgba(163,230,53,.7)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            right: 50,
+            top: 70,
+            width: 92,
+            height: 2,
+            display: "flex",
+            background: "rgba(255,255,255,.2)",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            marginBottom: 68,
+          }}
+        >
           <Title name={name} size={48} />
+          <Brand />
         </div>
       </div>
     </div>
@@ -206,26 +313,48 @@ export default async function OpenGraphImage({
   const image = gear.hasImage
     ? await downloadPublishedGearImage(shareId)
     : null;
+  const fontData = await loadOgpFont(
+    `${gear.name}僕のマイニューギアMy new gear...`,
+  );
+  const imageOptions = {
+    ...size,
+    headers: responseHeaders,
+    ...(fontData
+      ? {
+          fonts: [
+            {
+              name: OGP_FONT_NAME,
+              data: fontData,
+              weight: 400 as const,
+              style: "normal" as const,
+            },
+          ],
+        }
+      : {}),
+  };
 
   if (!image) {
-    return new ImageResponse(<CommonImage />, {
-      ...size,
-      headers: responseHeaders,
-    });
+    return new ImageResponse(<CommonImage />, imageOptions);
   }
 
   const bytes = new Uint8Array(await image.arrayBuffer());
-  const dimensions = readImageDimensions(bytes, image.type);
-  const src = `data:${image.type};base64,${Buffer.from(bytes).toString("base64")}`;
-  const isPortrait =
-    dimensions !== null && dimensions.height > dimensions.width;
+  const normalizedImage = await normalizeOgImage(bytes);
+  const isPortrait = normalizedImage.height > normalizedImage.width;
 
   return new ImageResponse(
     isPortrait ? (
-      <PortraitImage name={gear.name} src={src} />
+      <PortraitImage
+        name={gear.name}
+        src={normalizedImage.dataUri}
+        dimensions={normalizedImage}
+      />
     ) : (
-      <LandscapeImage name={gear.name} src={src} />
+      <LandscapeImage
+        name={gear.name}
+        src={normalizedImage.dataUri}
+        dimensions={normalizedImage}
+      />
     ),
-    { ...size, headers: responseHeaders },
+    imageOptions,
   );
 }
