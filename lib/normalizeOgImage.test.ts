@@ -28,4 +28,22 @@ describe("normalizeOgImage", () => {
     ).metadata();
     expect(outputMetadata.orientation).toBeUndefined();
   });
+
+  it("limits oversized input to the OGP rendering bounds", async () => {
+    const source = await sharp({
+      create: {
+        width: 2400,
+        height: 1600,
+        channels: 3,
+        background: "#84cc16",
+      },
+    })
+      .jpeg()
+      .toBuffer();
+
+    const normalized = await normalizeOgImage(source);
+
+    expect(normalized.width).toBe(1200);
+    expect(normalized.height).toBe(800);
+  });
 });

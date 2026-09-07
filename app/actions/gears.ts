@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import {
   createGear,
@@ -29,6 +30,48 @@ export type CreateGearActionInput = {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function getDeploymentOrigin() {
+  // Vercelの固有デプロイURLはDeployment Protectionの対象になり得る。
+  // 本番ではクローラーも到達できる公開ドメインを優先してprewarmする。
+  const host =
+    process.env.VERCEL_ENV === "production"
+      ? (process.env.NEXT_PUBLIC_SITE_URL ??
+        process.env.VERCEL_PROJECT_PRODUCTION_URL ??
+        process.env.VERCEL_URL)
+      : (process.env.VERCEL_URL ?? process.env.NEXT_PUBLIC_SITE_URL);
+  if (!host) return null;
+
+  try {
+    return new URL(host.startsWith("http") ? host : `https://${host}`).origin;
+  } catch {
+    return null;
+  }
+}
+
+function revalidatePublishedGear(shareId: string) {
+  revalidatePath(`/gadgets/${shareId}`);
+  revalidatePath(`/gadgets/${shareId}/opengraph-image`);
+}
+
+function prewarmOpenGraphImage(shareId: string) {
+  const origin = getDeploymentOrigin();
+  if (!origin) return;
+
+  after(async () => {
+    try {
+      const response = await fetch(
+        `${origin}/gadgets/${shareId}/opengraph-image`,
+        { headers: { "User-Agent": "my-new-gear-og-prewarmer/1.0" } },
+      );
+      if (!response.ok) {
+        console.error(`Failed to prewarm OGP image: HTTP ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Failed to prewarm OGP image:", error);
+    }
+  });
+}
 
 function isValidDate(value: string) {
   if (!DATE_PATTERN.test(value)) return false;
@@ -102,6 +145,8 @@ export async function publishGearAction(
 
   try {
     const shareId = await publishGear(id);
+    revalidatePublishedGear(shareId);
+    prewarmOpenGraphImage(shareId);
     revalidatePath("/");
     return { success: true, shareId };
   } catch (error) {
@@ -118,7 +163,8 @@ export async function unpublishGearAction(
   }
 
   try {
-    await unpublishGear(id);
+    const shareId = await unpublishGear(id);
+    if (shareId) revalidatePublishedGear(shareId);
     revalidatePath("/");
     return { success: true };
   } catch (error) {
@@ -135,7 +181,8 @@ export async function deleteGearAction(
   }
 
   try {
-    await deleteGear(id);
+    const shareId = await deleteGear(id);
+    if (shareId) revalidatePublishedGear(shareId);
 
     revalidatePath("/");
     return { success: true };

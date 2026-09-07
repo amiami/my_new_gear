@@ -91,16 +91,20 @@ export async function publishGear(id: string): Promise<string> {
   return data.share_id;
 }
 
-export async function unpublishGear(id: string): Promise<void> {
+export async function unpublishGear(id: string): Promise<string | null> {
   const { supabase } = await getAuthenticatedClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("gear_shares")
     .delete()
-    .eq("gear_id", id);
+    .eq("gear_id", id)
+    .select("share_id")
+    .maybeSingle();
 
   if (error) {
     throw new Error(`ガジェットの公開解除に失敗しました: ${error.message}`);
   }
+
+  return data?.share_id ?? null;
 }
 
 export async function createGear(
@@ -156,7 +160,7 @@ export async function updateGearDisposed(
   return data;
 }
 
-export async function deleteGear(id: string): Promise<void> {
+export async function deleteGear(id: string): Promise<string | null> {
   const { supabase, user } = await getAuthenticatedClient();
 
   const { data: gear, error: fetchError } = await supabase
@@ -171,7 +175,7 @@ export async function deleteGear(id: string): Promise<void> {
   }
 
   // 外部公開を最初に止め、後続処理が失敗しても公開URLだけが残らないようにする。
-  await unpublishGear(id);
+  const unpublishedShareId = await unpublishGear(id);
 
   if (gear.image_path) {
     const { error: imageError } = await supabase.storage
@@ -192,4 +196,6 @@ export async function deleteGear(id: string): Promise<void> {
   if (error) {
     throw new Error(`ガジェットの削除に失敗しました: ${error.message}`);
   }
+
+  return unpublishedShareId;
 }

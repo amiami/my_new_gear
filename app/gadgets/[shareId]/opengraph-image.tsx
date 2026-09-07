@@ -10,10 +10,12 @@ import {
 export const alt = "僕のマイニューギアで公開されたガジェット";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const dynamic = "force-dynamic";
+// 生成結果はNext.js/Vercelのルートキャッシュへ保存する。公開・解除操作では
+// revalidatePathを呼び、同じURLのキャッシュを明示的に破棄する。
+export const revalidate = 31_536_000;
 
 const responseHeaders = {
-  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+  "Cache-Control": "public, max-age=0, s-maxage=31536000",
   "X-Content-Type-Options": "nosniff",
 };
 
@@ -310,12 +312,11 @@ export default async function OpenGraphImage({
     return new Response(null, { status: 404, headers: responseHeaders });
   }
 
-  const image = gear.hasImage
-    ? await downloadPublishedGearImage(shareId)
-    : null;
-  const fontData = await loadOgpFont(
-    `${gear.name}僕のマイニューギアMy new gear...`,
-  );
+  // StorageとGoogle Fontsは互いに独立しているため並列取得する。
+  const [image, fontData] = await Promise.all([
+    gear.hasImage ? downloadPublishedGearImage(shareId) : null,
+    loadOgpFont(`${gear.name}僕のマイニューギアMy new gear...`),
+  ]);
   const imageOptions = {
     ...size,
     headers: responseHeaders,
